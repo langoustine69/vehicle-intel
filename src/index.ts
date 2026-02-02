@@ -216,11 +216,16 @@ addEntrypoint({
   price: { amount: 3000 },
   handler: async (ctx) => {
     const { make, model, year } = ctx.input;
-    const data = await fetchJSON(
-      `${NHTSA_COMPLAINTS}?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${year}`
-    );
     
-    const complaints = data.results || [];
+    // Use lowercase for better API compatibility
+    const complaintsUrl = `https://api.nhtsa.gov/complaints/complaintsByVehicle?make=${encodeURIComponent(make.toLowerCase())}&model=${encodeURIComponent(model.toLowerCase())}&modelYear=${year}`;
+    const response = await fetch(complaintsUrl);
+    
+    let complaints: any[] = [];
+    if (response.ok) {
+      const data = await response.json();
+      complaints = data.results || [];
+    }
     
     return {
       output: {
@@ -232,7 +237,7 @@ addEntrypoint({
           summary: c.summary?.substring(0, 500),
           crash: c.crash,
           fire: c.fire,
-          injuries: c.injuries,
+          injuries: c.numberOfInjuries,
           dateReceived: c.dateOfIncident,
         })),
         fetchedAt: new Date().toISOString(),
